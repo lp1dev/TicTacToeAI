@@ -38,19 +38,23 @@ def play(child, grid):
   if (verbose):
     print("Playing position %i" %move)
   child.sendline("%i" %move)
+  return move
   
 def play_alone(child):
   go_on = True
   turn = 0
   player = 1
-  players_data = [{"player": 1, "moves":[]}, {"player": 2, "moves":[]}]
+  players_data = [{"player": 1, "moves":[], "grids":[]}, {"player": 2, "moves":[], "grids":[]}]
+  last_move = None
   while go_on:
     if (verbose):
       print("Turn %i, player %i" %(turn, player))
     error, grid = parse_output(child, turn)
     if not error:
       player = 1 if player == 2 else 2
-      players_data[player - 1]['moves'].append(grid)
+      if turn > 0:
+        players_data[player - 1]['grids'].append(grid)
+        players_data[player - 1]['moves'].append(last_move)
       if (verbose):
         print("Grid [%s]" %grid)
     else:
@@ -59,13 +63,14 @@ def play_alone(child):
           print(error)
         return None
       elif "won!" in error:
+        players_data[player - 1]['moves'].append(last_move)
         if (verbose):
           print(error)
         return players_data[player - 1]
       else:
         if (verbose):
           print("Error : [%s]" %error)
-    play(child, grid)
+    last_move = play(child, grid)
     turn += 1
 
 def save_dataset(data):
@@ -90,8 +95,9 @@ def train(games):
 def	main():
   if (len(argv) != 2):
     return usage()
-  games_data = train(10)
+  games_data = train(2)
   save_dataset(games_data)
+  nn = NeuralNetwork(3, games_data)
 
 if __name__ == '__main__':
   main()

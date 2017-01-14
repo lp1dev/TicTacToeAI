@@ -2,11 +2,14 @@
 
 from sys import argv
 from random import randrange
+from neural_network import NeuralNetwork
 from time import sleep
 import pexpect
+import json
 
 encoding = 'UTF-8'
-verbose = True
+datasetfile = "dataset.json"
+verbose = False
 
 def usage():
   print("usage : %s program" %argv[0])
@@ -36,31 +39,59 @@ def play(child, grid):
     print("Playing position %i" %move)
   child.sendline("%i" %move)
   
-def game_input(child):
+def play_alone(child):
   go_on = True
   turn = 0
   player = 1
+  players_data = [{"player": 1, "moves":[]}, {"player": 2, "moves":[]}]
   while go_on:
     if (verbose):
       print("Turn %i, player %i" %(turn, player))
     error, grid = parse_output(child, turn)
     if not error:
       player = 1 if player == 2 else 2
-      print("Grid [%s]" %grid)
+      players_data[player - 1]['moves'].append(grid)
+      if (verbose):
+        print("Grid [%s]" %grid)
     else:
-      if "won!" in error or "Tie!" in error:
-        print(error)
-        break
+      if "Tie!" in error:
+        if (verbose):
+          print(error)
+        return None
+      elif "won!" in error:
+        if (verbose):
+          print(error)
+        return players_data[player - 1]
       else:
-        print("Error : [%s]" %error)
+        if (verbose):
+          print("Error : [%s]" %error)
     play(child, grid)
     turn += 1
 
+def save_dataset(data):
+  with open(datasetfile, "w+") as f:
+    f.write(json.dumps(data))
+    
+def train(games):
+  games_data = []
+  i = 0
+  while i < games:
+    child = pexpect.spawn(argv[1])
+    data = play_alone(child)
+    if data is not None:
+      games_data.append(data)
+      print("[%i/%i]" %(i + 1, games))
+      i += 1
+    child.close()
+  print("Training on %i winning games done !" %games)
+  print(games_data)
+  return games_data
+  
 def	main():
   if (len(argv) != 2):
     return usage()
-  child = pexpect.spawn(argv[1])
-  game_input(child)
+  games_data = train(10)
+  save_dataset(games_data)
 
 if __name__ == '__main__':
   main()

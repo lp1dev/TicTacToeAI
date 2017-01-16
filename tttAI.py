@@ -34,7 +34,7 @@ def parse_output(child, turn):
     if len(grid) == 9:
       return error, grid
 
-def user_play(child, grid):
+def user_play(child, grid, nn):
   move_str = ''
   while len(move_str) == 0:
     move_str = input("move : ")
@@ -52,7 +52,7 @@ def ai_play(child, grid, nn):
   return move
 
     
-def random_play(child, grid):
+def random_play(child, grid, nn):
   move = randrange(0, 9)
   if (verbose):
     print("AI playing position %i" %move)
@@ -68,11 +68,51 @@ def print_grid(grid):
     if ((i + 1) % 3) == 0:
       print()
 
-def play(nn):
+def generic_play(nn, player1, player2):
   child = pexpect.spawn(argv[1])  
   go_on = True
   turn = 0
   player = 1
+  players_data = [{"player": 1, "moves":[], "grids":[]}, {"player": 2, "moves":[], "grids":[]}]
+  last_move = None
+  last_grid = None
+  while go_on:
+    if (verbose):
+      print("Turn %i, player %i" %(turn, player))
+    error, grid = parse_output(child, turn)
+    if not error:
+      last_grid = grid
+      if turn > 0:
+        player = 1 if player == 2 else 2
+        players_data[player - 1]['grids'].append(grid)
+        players_data[player - 1]['moves'].append(last_move)
+      if (verbose):
+        print_grid(grid)
+    else:
+      if "Tie!" in error:
+        if (verbose):
+          print(error)
+        return None
+      elif "won!" in error:
+        winner = int(error[8:9])
+        players_data[winner - 1]['moves'].append(last_move)
+        if (verbose):
+          print(error)
+        return players_data[winner - 1]
+      else:
+        if (verbose):
+          print("Error : [%s]" %error)
+    if player == 2:
+      last_move = player2(child, last_grid, nn)
+    else:
+      last_move = player1(child, last_grid, nn)
+    turn += 1
+      
+def play(nn):
+  child = pexpect.spawn(argv[1])  
+  go_on = True
+  turn = 0
+  player = 2
   players_data = [{"player": 1, "moves":[], "grids":[]}, {"player": 2, "moves":[], "grids":[]}]
   last_move = None
   last_grid = None
@@ -223,7 +263,8 @@ def train(games):
 def continuous_train(nn):
   games_data = []
   while True:
-    data = play(nn)
+    data = generic_play(nn, ai_play, user_play)
+    print(data)
     nn.add_to_dataset(data)
     save_dataset(nn.get_dataset())
 

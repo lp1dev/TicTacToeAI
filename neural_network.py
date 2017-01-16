@@ -23,10 +23,13 @@ class NeuralNetwork():
         print(grid)
         output = {"weight": 0, "items": 0}
         for i, box in enumerate(grid):
-            output['items'] += 1
-            neuron_choice = self.neurons[i]['weight'][box] / self.neurons[i]['items'][box];
-            print("Neuron choice : %s" %neuron_choice)
-            output['weight'] = output['weight'] + neuron_choice
+            if self.neurons[i]['items'][box] == 0:
+                print("[Warning] The neural network hasn't been trained for every input")
+            else:
+                output['items'] += 1
+                neuron_choice = self.neurons[i]['weight'][box] / self.neurons[i]['items'][box];
+                print("Neuron choice : %s" %neuron_choice)
+                output['weight'] = output['weight'] + neuron_choice
         output['weight'] /= output['items']
         print("AI has chosen ")
         print(output)

@@ -59,6 +59,15 @@ def random_play(child, grid):
   child.sendline("%i" %move)
   return move
 
+def print_grid(grid):
+  for i, box in enumerate(grid):
+    if box == "0":
+      print("%i|" %i,end='')
+    else:
+      print("%s|" %box,end='')
+    if ((i + 1) % 3) == 0:
+      print()
+
 def play(nn):
   child = pexpect.spawn(argv[1])  
   go_on = True
@@ -78,19 +87,18 @@ def play(nn):
         players_data[player - 1]['grids'].append(grid)
         players_data[player - 1]['moves'].append(last_move)
       if (verbose):
-        print("Grid [%s]" %grid)
+        print_grid(grid)
     else:
       if "Tie!" in error:
         if (verbose):
           print(error)
         return None
       elif "won!" in error:
-        players_data[player - 1]['moves'].append(last_move)
+        winner = int(error[8:9])
+        players_data[winner - 1]['moves'].append(last_move)
         if (verbose):
           print(error)
-        if player == 1:
-          return players_data[player - 1]
-        return None
+        return players_data[winner - 1]
       else:
         if (verbose):
           print("Error : [%s]" %error)
@@ -119,7 +127,7 @@ def play_vs_random():
         players_data[player - 1]['grids'].append(grid)
         players_data[player - 1]['moves'].append(last_move)
       if (verbose):
-        print("Grid [%s]" %grid)
+        print_grid(grid)
       turn += 1
     else:
       if "Tie!" in error:
@@ -127,7 +135,6 @@ def play_vs_random():
           print(error)
         return None
       elif "won!" in error:
-        print(error)
         winner = int(error[8:9])
         players_data[winner - 1]['moves'].append(last_move)
         if (verbose):
@@ -157,7 +164,7 @@ def play_alone(child):
         players_data[player - 1]['grids'].append(grid)
         players_data[player - 1]['moves'].append(last_move)
       if (verbose):
-        print("Grid [%s]" %grid)
+        print_grid(grid)
     else:
       if "Tie!" in error:
         if (verbose):
@@ -181,7 +188,9 @@ def save_dataset(data):
 def load_dataset():
   with open(datasetfile) as f:
     raw = f.read()
-    return json.loads(raw)
+    dataset = json.loads(raw)
+    print("Loaded %i entries from %s" %(len(dataset), datasetfile))
+    return dataset
     
 def random_train(games):
   games_data = []
@@ -210,7 +219,14 @@ def train(games):
   print("Random training on %i winning games done !" %games)
   print(games_data)
   return games_data
-  
+
+def continuous_train(nn):
+  games_data = []
+  while True:
+    data = play(nn)
+    nn.add_to_dataset(data)
+    save_dataset(nn.get_dataset())
+
 def	main():
   if (len(argv) != 2):
     return usage()
@@ -223,7 +239,7 @@ def	main():
       games_data = load_dataset()
   nn = NeuralNetwork(3, games_data)
   nn.train()
-  play(nn)
+  continuous_train(nn)
 
 if __name__ == '__main__':
   main()

@@ -22,6 +22,7 @@ class NeuralNetwork():
 
     def add_to_dataset(self, data):
         self.dataset.append(data)
+        self.train()
 
     def get_dataset(self):
         return self.dataset

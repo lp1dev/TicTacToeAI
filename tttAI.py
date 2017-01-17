@@ -9,7 +9,7 @@ import pexpect
 import json
 
 encoding = 'UTF-8'
-datasetfile = "dataset.json"
+datasetfile = "dataset1.json"
 verbose = True
 
 def usage():
@@ -271,8 +271,9 @@ def continuous_train(nn):
 def	main():
   if (len(argv) != 2):
     return usage()
+  games_data = []
   if (isfile(datasetfile)):
-    answer = input('There is an existing dataset.json file, do you want to override it ? :[y/n]')
+    answer = input('There is an existing %s file, do you want to override it ? :[y/n]' %datasetfile)
     if answer and answer[0].lower() == 'y':
       games_data = train(30)
       save_dataset(games_data)

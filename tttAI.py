@@ -2,7 +2,7 @@
 
 from sys import argv
 from random import randrange
-from average_network import AverageNetwork
+from modules.average_network import AverageNetwork
 from time import sleep
 from os.path import isfile
 import pexpect

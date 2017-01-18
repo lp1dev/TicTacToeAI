@@ -2,7 +2,7 @@
 
 from sys import argv
 from random import randrange
-from neural_network import NeuralNetwork
+from average_network import AverageNetwork
 from time import sleep
 from os.path import isfile
 import pexpect
@@ -34,7 +34,7 @@ def parse_output(child, turn):
     if len(grid) == 9:
       return error, grid
 
-def user_play(child, grid, nn):
+def user_play(child, grid, an):
   move_str = ''
   while len(move_str) == 0:
     move_str = input("move : ")
@@ -44,15 +44,15 @@ def user_play(child, grid, nn):
   child.sendline("%i" %move)
   return move
     
-def ai_play(child, grid, nn):
-  move = nn.get_next_move(grid)
+def ai_play(child, grid, an):
+  move = an.get_next_move(grid)
   if (verbose):
     print("AI playing position %i" %move)
   child.sendline("%i" %move)
   return move
 
     
-def random_play(child, grid, nn):
+def random_play(child, grid, an):
   move = randrange(0, 9)
   if (verbose):
     print("AI playing position %i" %move)
@@ -68,7 +68,7 @@ def print_grid(grid):
     if ((i + 1) % 3) == 0:
       print()
 
-def generic_play(nn, player1, player2):
+def generic_play(an, player1, player2):
   child = pexpect.spawn(argv[1])  
   go_on = True
   turn = 0
@@ -103,124 +103,11 @@ def generic_play(nn, player1, player2):
         if (verbose):
           print("Error : [%s]" %error)
     if player == 2:
-      last_move = player2(child, last_grid, nn)
+      last_move = player2(child, last_grid, an)
     else:
-      last_move = player1(child, last_grid, nn)
+      last_move = player1(child, last_grid, an)
     turn += 1
       
-def play(nn):
-  child = pexpect.spawn(argv[1])  
-  go_on = True
-  turn = 0
-  player = 2
-  players_data = [{"player": 1, "moves":[], "grids":[]}, {"player": 2, "moves":[], "grids":[]}]
-  last_move = None
-  last_grid = None
-  while go_on:
-    if (verbose):
-      print("Turn %i, player %i" %(turn, player))
-    error, grid = parse_output(child, turn)
-    if not error:
-      last_grid = grid
-      if turn > 0:
-        player = 1 if player == 2 else 2
-        players_data[player - 1]['grids'].append(grid)
-        players_data[player - 1]['moves'].append(last_move)
-      if (verbose):
-        print_grid(grid)
-    else:
-      if "Tie!" in error:
-        if (verbose):
-          print(error)
-        return None
-      elif "won!" in error:
-        winner = int(error[8:9])
-        players_data[winner - 1]['moves'].append(last_move)
-        if (verbose):
-          print(error)
-        return players_data[winner - 1]
-      else:
-        if (verbose):
-          print("Error : [%s]" %error)
-    if player == 2:
-      last_move = ai_play(child, last_grid, nn)
-    else:
-      last_move = user_play(child, grid)
-    turn += 1
-
-def play_vs_random():
-  child = pexpect.spawn(argv[1])  
-  go_on = True
-  turn = 0
-  player = 1
-  players_data = [{"player": 1, "moves":[], "grids":[]}, {"player": 2, "moves":[], "grids":[]}]
-  last_move = None
-  last_grid = None
-  while go_on:
-    if (verbose):
-      print("Turn %i, player %i" %(turn, player))
-    error, grid = parse_output(child, turn)
-    if not error:
-      last_grid = grid
-      if turn > 0:
-        player = 1 if player == 2 else 2
-        players_data[player - 1]['grids'].append(grid)
-        players_data[player - 1]['moves'].append(last_move)
-      if (verbose):
-        print_grid(grid)
-      turn += 1
-    else:
-      if "Tie!" in error:
-        if (verbose):
-          print(error)
-        return None
-      elif "won!" in error:
-        winner = int(error[8:9])
-        players_data[winner - 1]['moves'].append(last_move)
-        if (verbose):
-          print(error)
-        return players_data[winner - 1]
-      else:
-        if (verbose):
-          print("Error : [%s]" %error)
-    if player == 2:
-      last_move = random_play(child, last_grid)
-    else:
-      last_move = user_play(child, grid)
-
-def play_alone(child):
-  go_on = True
-  turn = 0
-  player = 1
-  players_data = [{"player": 1, "moves":[], "grids":[]}, {"player": 2, "moves":[], "grids":[]}]
-  last_move = None
-  while go_on:
-    if (verbose):
-      print("Turn %i, player %i" %(turn, player))
-    error, grid = parse_output(child, turn)
-    if not error:
-      player = 1 if player == 2 else 2
-      if turn > 0:
-        players_data[player - 1]['grids'].append(grid)
-        players_data[player - 1]['moves'].append(last_move)
-      if (verbose):
-        print_grid(grid)
-    else:
-      if "Tie!" in error:
-        if (verbose):
-          print(error)
-        return None
-      elif "won!" in error:
-        players_data[player - 1]['moves'].append(last_move)
-        if (verbose):
-          print(error)
-        return players_data[player - 1]
-      else:
-        if (verbose):
-          print("Error : [%s]" %error)
-    last_move = random_play(child, grid)
-    turn += 1
-
 def save_dataset(data):
   with open(datasetfile, "w+") as f:
     f.write(json.dumps(data))
@@ -260,13 +147,13 @@ def train(games):
   print(games_data)
   return games_data
 
-def continuous_train(nn):
+def continuous_train(an):
   games_data = []
   while True:
-    data = generic_play(nn, ai_play, user_play)
+    data = generic_play(an, ai_play, user_play)
     print(data)
-    nn.add_to_dataset(data)
-    save_dataset(nn.get_dataset())
+    an.add_to_dataset(data)
+    save_dataset(an.get_dataset())
 
 def	main():
   if (len(argv) != 2):
@@ -275,13 +162,12 @@ def	main():
   if (isfile(datasetfile)):
     answer = input('There is an existing %s file, do you want to override it ? :[y/n]' %datasetfile)
     if answer and answer[0].lower() == 'y':
-      games_data = train(30)
       save_dataset(games_data)
     else:
       games_data = load_dataset()
-  nn = NeuralNetwork(3, games_data)
-  nn.train()
-  continuous_train(nn)
+  an = AverageNetwork(3, games_data)
+  an.train()
+  continuous_train(an)
 
 if __name__ == '__main__':
   main()

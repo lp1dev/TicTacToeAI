@@ -151,6 +151,7 @@ def continuous_train(an):
   games_data = []
   while True:
     data = generic_play(an, ai_play, user_play)
+#    data = generic_play(an, user_play, ai_play)
     print(data)
     an.add_to_dataset(data)
     save_dataset(an.get_dataset())
